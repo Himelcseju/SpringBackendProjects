@@ -8,9 +8,18 @@ public class ApiResponse {
 
     private String message;
     private boolean status;
+    private String jwt;
 
     public String getMessage() {
         return message;
+    }
+
+    public String getJwt() {
+        return jwt;
+    }
+
+    public void setJwt(String jwt) {
+        this.jwt = jwt;
     }
 
     public void setMessage(String message) {
