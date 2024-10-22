@@ -12,4 +12,10 @@ public class AuthResponse {
     private String jwt;
     private String message;
     private boolean status;
+
+    public AuthResponse(String message, boolean status) {
+        this.message = message;
+        this.status = status;
+    }
+
 }

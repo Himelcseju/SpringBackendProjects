@@ -24,6 +24,10 @@ public class ApplicatonConfig {
                 .authorizeRequests(
                         authorize -> authorize.requestMatchers("/api/**")
                                 .authenticated().anyRequest().permitAll())
+                .oauth2Login(oauth2 -> oauth2
+                .defaultSuccessUrl("/dashboard") // Redirect to dashboard after successful login
+                .failureUrl("/login?error=true")
+                )
                 .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()));
