@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ import com.example.demo.Service.UserService;
 import com.example.demo.Service.UserServiceImplementation;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
-
+import com.google.api.client.json.jackson2.JacksonFactory;
 
 @RestController
 @RequestMapping("/auth")
@@ -116,7 +117,7 @@ public class UserController {
             }
         }
         // Assign roles to the user
-        //createdUser.setUserRoles(newUserRoles);
+        // createdUser.setUserRoles(newUserRoles);
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(email, password);
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -183,11 +184,20 @@ public class UserController {
             NetHttpTransport transport = new NetHttpTransport();
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
             String idTokenString = token.get("token");
-            GoogleIdTokenVerifier verifier = GoogleIdTokenVerifier.newBuilder()
+
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(transport, jsonFactory)
                     .setAudience(Collections.singletonList(CLIENT_ID))
                     .build();
 
-            GoogleIdToken idToken = verifier.verify(idTokenString);
+            GoogleIdToken idToken = null;
+            ;
+            try {
+                idToken = verifier.verify(idTokenString);
+                System.out.println("idToken: " + idToken);
+            } catch (GeneralSecurityException | java.io.IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
             if (idToken == null) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -196,20 +206,24 @@ public class UserController {
                 GoogleIdToken.Payload payload = idToken.getPayload();
 
                 String email = payload.getEmail();
-
+                System.out.println("email: " + email);
                 String name = (String) payload.get("name");
+                System.out.println("name: " + name);
                 User user = userRepository.findByEmail(email);
                 if (user == null) {
                     user = new User();
                     user.setEmail(email);
-                    user.setFullName((String) payload.get("name")); // or payload.get("given_name") + " " + payload.get("family_name")
-                    user.setPassword(passwordEncoder.encode("defaultPassword")); // Use a default password or generate one
+                    user.setFullName((String) payload.get("name")); // or payload.get("given_name") + " " +
+                                                                    // payload.get("family_name")
+                    user.setPassword(passwordEncoder.encode("defaultPassword")); // Use a default password or generate
+                                                                                 // one
                     user.setMobile("N/A"); // You might want to handle mobile differently
 
                     userRepository.save(user); // Save the new user
                 }
 
-                Authentication authentication = new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.emptyList());
+                Authentication authentication = new UsernamePasswordAuthenticationToken(user.getEmail(), null,
+                        Collections.emptyList());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 String token1 = JwtProvider.generateToken(authentication);
 
@@ -221,7 +235,8 @@ public class UserController {
 
             }
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new AuthResponse("Error verifying ID token: " + e.getMessage(), false));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new AuthResponse("Error verifying ID token: " + e.getMessage(), false));
         }
 
     }
